@@ -3,7 +3,7 @@
 from pwn import *
 import os
 
-context(arch='amd64', os='linux')
+context(arch='i386', os='linux')
 
 binary = './a.out'
 
