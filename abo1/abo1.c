@@ -3,7 +3,6 @@
 
 void f(int nada) {
 	char buf[1024];
-
 	gets(buf);
 }
 
